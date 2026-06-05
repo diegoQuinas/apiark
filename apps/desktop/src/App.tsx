@@ -212,9 +212,15 @@ function App() {
         case "focusUrl":
           urlBarRef.current?.focus();
           break;
-        case "focusEnv":
-          envSelectorRef.current?.focus();
+        case "focusEnv": {
+          // Prefer the always-visible header selector; fall back to the
+          // side-panel one when no environments are loaded.
+          const headerEnv = document.getElementById(
+            "header-environment-selector",
+          ) as HTMLSelectElement | null;
+          (headerEnv ?? envSelectorRef.current)?.focus();
           break;
+        }
         case "toggleSidebar":
           setSidePanelVisible((prev) => !prev);
           break;

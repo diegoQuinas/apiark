@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { renderHook } from "@testing-library/react";
+import { renderHook, act } from "@testing-library/react";
 import { useActiveCollectionEnvironments } from "@/hooks/use-active-collection-environments";
 import { useCollectionStore } from "@/stores/collection-store";
 import { useEnvironmentStore } from "@/stores/environment-store";
@@ -18,6 +18,7 @@ function collection(name: string, path: string): CollectionNode {
 describe("useActiveCollectionEnvironments", () => {
   beforeEach(() => {
     useCollectionStore.setState({ collections: [] });
+    useEnvironmentStore.setState({ loadEnvironments: vi.fn() });
   });
 
   it("loads environments for the first collection when collections are present", () => {
@@ -39,5 +40,21 @@ describe("useActiveCollectionEnvironments", () => {
     renderHook(() => useActiveCollectionEnvironments());
 
     expect(loadEnvironments).not.toHaveBeenCalled();
+  });
+
+  it("loads environments when collections arrive after mount", () => {
+    const loadEnvironments = vi.fn();
+    useEnvironmentStore.setState({ loadEnvironments });
+
+    renderHook(() => useActiveCollectionEnvironments());
+    expect(loadEnvironments).not.toHaveBeenCalled();
+
+    act(() => {
+      useCollectionStore.setState({
+        collections: [collection("Groceries", "/tmp/groceries")],
+      });
+    });
+
+    expect(loadEnvironments).toHaveBeenCalledWith("/tmp/groceries");
   });
 });

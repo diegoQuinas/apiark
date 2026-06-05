@@ -27,9 +27,11 @@ export function HeaderEnvironmentSelector() {
 
   return (
     <select
+      id="header-environment-selector"
       value={activeEnvironmentName ?? ""}
       onChange={(e) => setActiveEnvironment(e.target.value || null)}
       title={t("environment.title")}
+      aria-label={t("environment.title")}
       className="max-w-[180px] shrink-0 cursor-pointer rounded-lg border border-[var(--color-border)] bg-[var(--color-elevated)] px-3 py-2 text-sm text-[var(--color-text-primary)] outline-none transition-colors focus:border-[var(--color-accent)]/50 focus:ring-2 focus:ring-[var(--color-accent)]/20"
     >
       <option value="">{t("environment.noEnvironment")}</option>
