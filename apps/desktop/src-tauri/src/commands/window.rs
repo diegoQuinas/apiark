@@ -17,7 +17,9 @@ pub async fn open_new_window(app: AppHandle) -> Result<String, String> {
     #[cfg(not(target_os = "macos"))]
     let builder = builder.decorations(false);
     #[cfg(target_os = "macos")]
-    let builder = builder.title_bar_style(tauri::TitleBarStyle::Overlay);
+    let builder = builder
+        .title_bar_style(tauri::TitleBarStyle::Overlay)
+        .hidden_title(true);
 
     builder
         .build()
