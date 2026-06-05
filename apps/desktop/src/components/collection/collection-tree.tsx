@@ -418,7 +418,7 @@ function TreeNodeRow({
           } else if (protocol === "sse") {
             patch.url = "";
           } else if (protocol === "grpc") {
-            patch.url = "http://localhost:50051";
+            patch.url = "http://localhost:9090";
             patch.grpc = {
               services: [],
               selectedService: null,

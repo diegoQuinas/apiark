@@ -536,7 +536,7 @@ export const useTabStore = create<TabState>((set, get) => ({
     const tab = createEmptyTab({
       name: "Untitled gRPC",
       protocol: "grpc",
-      url: "http://localhost:50051",
+      url: "http://localhost:9090",
       grpc: {
         services: [],
         selectedService: null,
