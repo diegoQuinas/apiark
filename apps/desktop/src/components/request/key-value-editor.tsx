@@ -1,6 +1,6 @@
 import type { KeyValuePair } from "@apiark/types";
 import { Plus, Trash2 } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { VariableHighlightInput } from "./variable-highlight-input";
 
 let kvCounter = 0;
 const kvId = () => `kv_${Date.now()}_${++kvCounter}`;
@@ -59,19 +59,19 @@ export function KeyValueEditor({
             onChange={(e) => update(index, "enabled", e.target.checked)}
             className="h-4 w-4 accent-blue-500"
           />
-          <Input
-            type="text"
+          <VariableHighlightInput
             value={pair.key}
-            onChange={(e) => update(index, "key", e.target.value)}
+            onChange={(value) => update(index, "key", value)}
             placeholder={keyPlaceholder}
-            className="rounded bg-[var(--color-elevated)] px-2 py-1 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-dimmed)] outline-none focus:ring-1 focus:ring-blue-500"
+            className="w-full rounded bg-[var(--color-elevated)] px-2 py-1 text-sm placeholder-[var(--color-text-dimmed)] outline-none focus:ring-1 focus:ring-blue-500"
+            overlayClassName="px-2 text-sm"
           />
-          <Input
-            type="text"
+          <VariableHighlightInput
             value={pair.value}
-            onChange={(e) => update(index, "value", e.target.value)}
+            onChange={(value) => update(index, "value", value)}
             placeholder={valuePlaceholder}
-            className="rounded bg-[var(--color-elevated)] px-2 py-1 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-dimmed)] outline-none focus:ring-1 focus:ring-blue-500"
+            className="w-full rounded bg-[var(--color-elevated)] px-2 py-1 text-sm placeholder-[var(--color-text-dimmed)] outline-none focus:ring-1 focus:ring-blue-500"
+            overlayClassName="px-2 text-sm"
           />
           <button
             onClick={() => removeRow(index)}

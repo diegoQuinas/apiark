@@ -11,16 +11,21 @@ vi.mock("@/lib/tauri-api", () => ({
     baseUrl: "http://localhost:3000",
     apiKey: "dev-key",
   }),
+  saveEnvironment: vi.fn().mockResolvedValue(undefined),
   loadRootDotenv: vi.fn().mockResolvedValue({}),
 }));
 
+import { saveEnvironment } from "@/lib/tauri-api";
+
 describe("Environment Store", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     useEnvironmentStore.setState({
       environments: [],
       activeEnvironmentName: null,
       activeCollectionPath: null,
       runtimeOverrides: {},
+      resolvedVariables: {},
     });
   });
 
@@ -51,5 +56,32 @@ describe("Environment Store", () => {
     });
     const overrides = useEnvironmentStore.getState().runtimeOverrides;
     expect(overrides.newVar).toBe("newValue");
+  });
+
+  it("caches resolved variables after loading a collection", async () => {
+    await useEnvironmentStore.getState().loadEnvironments("/test/collection");
+    expect(useEnvironmentStore.getState().resolvedVariables).toEqual({
+      baseUrl: "http://localhost:3000",
+      apiKey: "dev-key",
+    });
+  });
+
+  it("writes a variable into the active environment via setVariable", async () => {
+    await useEnvironmentStore.getState().loadEnvironments("/test/collection");
+    await useEnvironmentStore.getState().setVariable("baseUrl", "http://changed");
+
+    expect(saveEnvironment).toHaveBeenCalledWith(
+      "/test/collection",
+      expect.objectContaining({
+        name: "development",
+        variables: expect.objectContaining({ baseUrl: "http://changed" }),
+      }),
+    );
+  });
+
+  it("ignores setVariable when no environment is active", async () => {
+    useEnvironmentStore.setState({ activeCollectionPath: "/test/collection" });
+    await useEnvironmentStore.getState().setVariable("baseUrl", "x");
+    expect(saveEnvironment).not.toHaveBeenCalled();
   });
 });
