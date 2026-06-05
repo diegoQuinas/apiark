@@ -129,7 +129,8 @@ export function GrpcView() {
   ): Partial<GrpcState> => {
     const mtd = svc?.methods.find((m) => m.name === methodName);
     const patch: Partial<GrpcState> = { selectedMethod: methodName };
-    if (mtd?.exampleJson && isBlankJson(grpc.requestJson)) {
+    const methodChanged = methodName !== grpc.selectedMethod;
+    if (mtd?.exampleJson && (methodChanged || isBlankJson(grpc.requestJson))) {
       patch.requestJson = tryFormatJson(mtd.exampleJson);
     }
     return patch;
@@ -169,11 +170,14 @@ export function GrpcView() {
         updateGrpc({ error: t("grpc.reflectNoServices", { defaultValue: "The server exposed no services via reflection." }) });
         return;
       }
-      const svc = services[0];
+      // Prefer the previously selected service if the server still exposes it,
+      // otherwise fall back to the first one returned by reflection.
+      const svc = services.find((s) => s.fullName === grpc.selectedService) ?? services[0];
+      const method = svc?.methods.find((m) => m.name === grpc.selectedMethod)?.name ?? svc?.methods[0]?.name ?? null;
       updateGrpc({
         services,
         selectedService: svc?.fullName ?? null,
-        ...selectMethodPatch(svc, svc?.methods[0]?.name ?? null),
+        ...selectMethodPatch(svc, method),
         error: null,
       });
     } catch (err) {
