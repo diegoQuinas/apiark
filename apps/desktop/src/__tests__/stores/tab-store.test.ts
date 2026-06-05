@@ -95,6 +95,27 @@ describe("Tab Store", () => {
     expect(state.tabs[0].protocol).toBe("socketio");
   });
 
+  it("keeps {{variables}} unencoded when syncing params into the URL", () => {
+    useTabStore.getState().newTab();
+    useTabStore.getState().setUrl("{{base-url}}/health");
+    useTabStore.getState().setParams([
+      { id: "p1", key: "{{prueba}}", value: "{{prueba}}", enabled: true },
+    ]);
+    const tab = useTabStore.getState().tabs[0];
+    // Encoded braces (%7B%7B...) would never match the backend interpolator.
+    expect(tab.url).toBe("{{base-url}}/health?{{prueba}}={{prueba}}");
+  });
+
+  it("still percent-encodes non-variable parts of params", () => {
+    useTabStore.getState().newTab();
+    useTabStore.getState().setUrl("http://x");
+    useTabStore.getState().setParams([
+      { id: "p1", key: "q", value: "a b&c", enabled: true },
+    ]);
+    const tab = useTabStore.getState().tabs[0];
+    expect(tab.url).toBe("http://x?q=a%20b%26c");
+  });
+
   it("closes a tab", () => {
     useTabStore.getState().newTab();
     useTabStore.getState().newTab();

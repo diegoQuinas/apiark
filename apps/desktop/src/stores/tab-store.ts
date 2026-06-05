@@ -24,6 +24,7 @@ import {
 import { useEnvironmentStore } from "./environment-store";
 import { useSettingsStore } from "./settings-store";
 import { useConsoleStore } from "./console-store";
+import { variableRegex } from "@/lib/variables";
 
 interface TabState {
   tabs: Tab[];
@@ -130,13 +131,37 @@ function parseUrlParams(url: string): { baseUrl: string; params: KeyValuePair[] 
 }
 
 /**
+ * Percent-encode a query param key/value while leaving `{{variable}}` tokens
+ * intact. The braces of an encoded `{{var}}` (`%7B%7B...%7D%7D`) no longer match
+ * the backend interpolator's `{{...}}` pattern, so encoding them would stop the
+ * variable from ever resolving. Keeping the token literal mirrors how the URL
+ * bar treats raw variables — the backend resolves them at send time.
+ */
+function encodeParamPreservingVariables(text: string): string {
+  const regex = variableRegex();
+  let result = "";
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(text)) !== null) {
+    result += encodeURIComponent(text.slice(lastIndex, match.index));
+    result += match[0]; // the literal {{var}} token, left unencoded
+    lastIndex = regex.lastIndex;
+  }
+  result += encodeURIComponent(text.slice(lastIndex));
+  return result;
+}
+
+/**
  * Build a URL query string from KeyValuePair[], appending to a base URL.
  */
 function buildUrlWithParams(baseUrl: string, params: KeyValuePair[]): string {
   const enabledParams = params.filter((p) => p.enabled && p.key.trim());
   if (enabledParams.length === 0) return baseUrl;
   const qs = enabledParams
-    .map((p) => `${encodeURIComponent(p.key)}=${encodeURIComponent(p.value)}`)
+    .map(
+      (p) =>
+        `${encodeParamPreservingVariables(p.key)}=${encodeParamPreservingVariables(p.value)}`,
+    )
     .join("&");
   return `${baseUrl}?${qs}`;
 }
