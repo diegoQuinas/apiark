@@ -7,7 +7,7 @@ use prost_types::FileDescriptorProto;
 use tonic::transport::Channel;
 
 use super::client::GrpcManager;
-use super::{GrpcCallType, GrpcMethodInfo, GrpcServiceInfo};
+use super::{example_json_for, GrpcCallType, GrpcMethodInfo, GrpcServiceInfo};
 
 // Generated gRPC server reflection (v1) client. The proto is compiled at build
 // time (see build.rs) via protox -> tonic-build, so no system `protoc` is needed.
@@ -156,6 +156,7 @@ fn pool_to_service_infos(pool: &DescriptorPool) -> Vec<GrpcServiceInfo> {
                         input_type: m.input().full_name().to_string(),
                         output_type: m.output().full_name().to_string(),
                         call_type,
+                        example_json: example_json_for(&m.input()),
                     }
                 })
                 .collect();

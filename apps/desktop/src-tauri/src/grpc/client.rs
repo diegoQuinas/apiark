@@ -9,6 +9,8 @@ use prost_reflect::{DescriptorPool, DynamicMessage, MessageDescriptor};
 use tauri::{AppHandle, Emitter};
 use tonic::transport::Channel;
 
+use crate::http::jsonc::strip_json_comments;
+
 use super::{GrpcMetadata, GrpcResponse};
 
 /// A raw codec that passes bytes through without protobuf re-encoding.
@@ -151,9 +153,11 @@ impl GrpcManager {
 
         let input_desc = method_desc.input();
 
-        // Parse JSON to DynamicMessage
+        // Parse JSON to DynamicMessage. Strip JSONC comments first so the
+        // editor can accept `//` and `/* */` comments like the HTTP body does.
         let json_value: serde_json::Value =
-            serde_json::from_str(request_json).map_err(|e| format!("Invalid JSON: {e}"))?;
+            serde_json::from_str(&strip_json_comments(request_json))
+                .map_err(|e| format!("Invalid JSON: {e}"))?;
         let request_msg = json_to_dynamic_message(&input_desc, &json_value)?;
 
         // Encode to bytes
@@ -237,7 +241,8 @@ impl GrpcManager {
 
         let request_msg = json_to_dynamic_message(
             &input_desc,
-            &serde_json::from_str(request_json).map_err(|e| format!("Invalid JSON: {e}"))?,
+            &serde_json::from_str(&strip_json_comments(request_json))
+                .map_err(|e| format!("Invalid JSON: {e}"))?,
         )?;
         let mut request_bytes = Vec::new();
         request_msg
@@ -353,8 +358,9 @@ impl GrpcManager {
         // Encode all messages
         let mut encoded_messages = Vec::new();
         for (i, json_str) in messages_json.iter().enumerate() {
-            let json_value: serde_json::Value = serde_json::from_str(json_str)
-                .map_err(|e| format!("Invalid JSON in message {i}: {e}"))?;
+            let json_value: serde_json::Value =
+                serde_json::from_str(&strip_json_comments(json_str))
+                    .map_err(|e| format!("Invalid JSON in message {i}: {e}"))?;
             let msg = json_to_dynamic_message(&input_desc, &json_value)?;
             let mut bytes = Vec::new();
             msg.encode(&mut bytes)
@@ -452,8 +458,9 @@ impl GrpcManager {
 
         let mut encoded_messages = Vec::new();
         for (i, json_str) in messages_json.iter().enumerate() {
-            let json_value: serde_json::Value = serde_json::from_str(json_str)
-                .map_err(|e| format!("Invalid JSON in message {i}: {e}"))?;
+            let json_value: serde_json::Value =
+                serde_json::from_str(&strip_json_comments(json_str))
+                    .map_err(|e| format!("Invalid JSON in message {i}: {e}"))?;
             let msg = json_to_dynamic_message(&input_desc, &json_value)?;
             let mut bytes = Vec::new();
             msg.encode(&mut bytes)

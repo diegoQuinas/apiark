@@ -3,13 +3,13 @@ import { useTranslation } from "react-i18next";
 import { useTabStore, useActiveTab } from "@/stores/tab-store";
 import { grpcLoadProto, grpcReflectServices, grpcCallUnary, grpcCallServerStream, grpcCallClientStream, grpcCallBidiStream } from "@/lib/tauri-api";
 import { open } from "@tauri-apps/plugin-dialog";
-import type { GrpcState, GrpcMethodInfo } from "@apiark/types";
+import type { GrpcState, GrpcMethodInfo, GrpcServiceInfo } from "@apiark/types";
+import { CodeEditor } from "@/components/ui/code-editor";
 import { Upload, Radio, Send, Loader2, Trash2, ArrowDown, ArrowUp, Plus, X, Search, ChevronDown, ChevronRight } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { UrlBar } from "@/components/request/url-bar";
 import { KeyValueEditor } from "@/components/request/key-value-editor";
 import { Input } from "@/components/ui/input";
-import { TextArea } from "@/components/ui/textarea";
 
 interface StreamMessage {
   body: string;
@@ -17,6 +17,16 @@ interface StreamMessage {
   timeMs: number;
   direction?: "sent" | "received";
 }
+
+/** gRPC state fields that are persisted to the request file. A patch touching
+ * any of these marks the tab dirty; ephemeral fields (services, loading,
+ * response, error) do not. */
+const PERSISTABLE_GRPC_KEYS: ReadonlyArray<keyof GrpcState> = [
+  "selectedService",
+  "selectedMethod",
+  "requestJson",
+  "metadata",
+];
 
 const CALL_TYPE_ORDER = ["unary", "serverStreaming", "clientStreaming", "bidiStreaming"] as const;
 
@@ -96,13 +106,33 @@ export function GrpcView() {
   const grpc = tab.grpc;
 
   const updateGrpc = (patch: Partial<GrpcState>) => {
+    // Only edits to persistable fields mark the tab dirty (which reveals the
+    // Save button). Ephemeral updates — loading/response/error, and the
+    // services discovered by Reflect — must not, mirroring how HTTP sending
+    // never dirties the tab. Reflect still dirties via selectedService/Method.
+    const marksDirty = PERSISTABLE_GRPC_KEYS.some((k) => k in patch);
     useTabStore.setState((state) => ({
       tabs: state.tabs.map((t) =>
         t.id === state.activeTabId && t.grpc
-          ? { ...t, grpc: { ...t.grpc!, ...patch } }
+          ? { ...t, ...(marksDirty ? { isDirty: true } : {}), grpc: { ...t.grpc!, ...patch } }
           : t,
       ),
     }));
+  };
+
+  // Build the patch for selecting a method: switch the method and, when the
+  // request body is still blank, pre-fill it with the method's generated
+  // example JSON (like Postman does) so the user sees the expected fields.
+  const selectMethodPatch = (
+    svc: GrpcServiceInfo | undefined,
+    methodName: string | null,
+  ): Partial<GrpcState> => {
+    const mtd = svc?.methods.find((m) => m.name === methodName);
+    const patch: Partial<GrpcState> = { selectedMethod: methodName };
+    if (mtd?.exampleJson && isBlankJson(grpc.requestJson)) {
+      patch.requestJson = tryFormatJson(mtd.exampleJson);
+    }
+    return patch;
   };
 
   const handleLoadProto = async () => {
@@ -114,10 +144,11 @@ export function GrpcView() {
       if (!selected) return;
 
       const services = await grpcLoadProto(tab.id, selected as string);
+      const svc = services[0];
       updateGrpc({
         services,
-        selectedService: services[0]?.fullName ?? null,
-        selectedMethod: services[0]?.methods[0]?.name ?? null,
+        selectedService: svc?.fullName ?? null,
+        ...selectMethodPatch(svc, svc?.methods[0]?.name ?? null),
         error: null,
       });
     } catch (err) {
@@ -138,10 +169,11 @@ export function GrpcView() {
         updateGrpc({ error: t("grpc.reflectNoServices", { defaultValue: "The server exposed no services via reflection." }) });
         return;
       }
+      const svc = services[0];
       updateGrpc({
         services,
-        selectedService: services[0]?.fullName ?? null,
-        selectedMethod: services[0]?.methods[0]?.name ?? null,
+        selectedService: svc?.fullName ?? null,
+        ...selectMethodPatch(svc, svc?.methods[0]?.name ?? null),
         error: null,
       });
     } catch (err) {
@@ -262,7 +294,7 @@ export function GrpcView() {
                   const svc = grpc.services.find((s) => s.fullName === e.target.value);
                   updateGrpc({
                     selectedService: e.target.value,
-                    selectedMethod: svc?.methods[0]?.name ?? null,
+                    ...selectMethodPatch(svc, svc?.methods[0]?.name ?? null),
                   });
                   setMethodFilter("");
                 }}
@@ -280,7 +312,7 @@ export function GrpcView() {
             <MethodBrowser
               methods={selectedSvc.methods}
               selectedMethod={grpc.selectedMethod}
-              onSelectMethod={(name) => updateGrpc({ selectedMethod: name })}
+              onSelectMethod={(name) => updateGrpc(selectMethodPatch(selectedSvc, name))}
               filter={methodFilter}
               onFilterChange={setMethodFilter}
             />
@@ -343,17 +375,16 @@ export function GrpcView() {
                           </button>
                         )}
                       </div>
-                      <TextArea
+                      <CodeEditor
                         value={msg}
-                        onChange={(e) => {
+                        onChange={(v) => {
                           const updated = [...clientMessages];
-                          updated[i] = e.target.value;
+                          updated[i] = v;
                           setClientMessages(updated);
                         }}
-                        className="w-full resize-none rounded bg-[var(--color-elevated)] p-2 font-mono text-xs text-[var(--color-text-primary)] outline-none focus:ring-1 focus:ring-blue-500"
+                        language="json"
+                        height="90px"
                         placeholder='{ "field": "value" }'
-                        rows={3}
-                        spellCheck={false}
                       />
                     </div>
                   ))}
@@ -361,18 +392,20 @@ export function GrpcView() {
               </>
             ) : (
               /* Single message input for unary/server streaming */
-              <>
+              <div className="flex h-full flex-col">
                 <label className="mb-1 block text-xs font-medium text-[var(--color-text-muted)]">
                   {t("grpc.requestBody")}
                 </label>
-                <TextArea
-                  value={grpc.requestJson}
-                  onChange={(e) => updateGrpc({ requestJson: e.target.value })}
-                  className="h-full w-full resize-none rounded bg-[var(--color-elevated)] p-3 font-mono text-sm text-[var(--color-text-primary)] outline-none focus:ring-1 focus:ring-blue-500"
-                  placeholder='{ "field": "value" }'
-                  spellCheck={false}
-                />
-              </>
+                <div className="min-h-0 flex-1">
+                  <CodeEditor
+                    value={grpc.requestJson}
+                    onChange={(v) => updateGrpc({ requestJson: v })}
+                    language="json"
+                    height="100%"
+                    placeholder='{ "field": "value" }'
+                  />
+                </div>
+              </div>
             )}
           </div>
         </div>
@@ -636,6 +669,13 @@ function CallTypeBadge({ callType }: { callType: string }) {
       {labels[callType] ?? callType}
     </span>
   );
+}
+
+/** A request body that carries no user content yet — safe to overwrite with a
+ * generated example. */
+function isBlankJson(body: string): boolean {
+  const trimmed = body.trim();
+  return trimmed === "" || trimmed === "{}";
 }
 
 function tryFormatJson(body: string): string {
