@@ -92,7 +92,7 @@ impl GrpcManager {
     }
 
     /// Get or create a channel to the given address
-    async fn get_channel(&self, address: &str) -> Result<Channel, String> {
+    pub(crate) async fn get_channel(&self, address: &str) -> Result<Channel, String> {
         {
             let channels = self
                 .channels
@@ -105,6 +105,7 @@ impl GrpcManager {
 
         let channel = Channel::from_shared(address.to_string())
             .map_err(|e| format!("Invalid gRPC address: {e}"))?
+            .connect_timeout(std::time::Duration::from_secs(10))
             .connect()
             .await
             .map_err(|e| format!("Failed to connect to gRPC server: {e}"))?;
@@ -132,7 +133,8 @@ impl GrpcManager {
         let pool = {
             let pools = self.pools.lock().map_err(|e| format!("Lock error: {e}"))?;
             pools.get(connection_id).cloned().ok_or_else(|| {
-                "No proto schema loaded for this connection. Load a .proto file first.".to_string()
+                "No schema loaded for this connection. Use 'Reflect' or load a .proto file."
+                    .to_string()
             })?
         };
 
@@ -588,7 +590,10 @@ impl GrpcManager {
             pools
                 .get(connection_id)
                 .cloned()
-                .ok_or_else(|| "No proto schema loaded. Load a .proto file first.".to_string())?
+                .ok_or_else(|| {
+                    "No schema loaded for this connection. Use 'Reflect' or load a .proto file."
+                        .to_string()
+                })?
         };
         let svc_desc = pool
             .services()

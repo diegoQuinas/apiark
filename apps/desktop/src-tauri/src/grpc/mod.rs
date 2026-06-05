@@ -1,6 +1,5 @@
 pub mod client;
 pub mod proto_parser;
-#[allow(dead_code, unused_imports, unused_variables)]
 pub mod reflection;
 
 use serde::{Deserialize, Serialize};

@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useTabStore, useActiveTab } from "@/stores/tab-store";
-import { grpcLoadProto, grpcCallUnary, grpcCallServerStream, grpcCallClientStream, grpcCallBidiStream } from "@/lib/tauri-api";
+import { grpcLoadProto, grpcReflectServices, grpcCallUnary, grpcCallServerStream, grpcCallClientStream, grpcCallBidiStream } from "@/lib/tauri-api";
 import { open } from "@tauri-apps/plugin-dialog";
 import type { GrpcState, GrpcMethodInfo } from "@apiark/types";
-import { Upload, Send, Loader2, Trash2, ArrowDown, ArrowUp, Plus, X, Search, ChevronDown, ChevronRight } from "lucide-react";
+import { Upload, Radio, Send, Loader2, Trash2, ArrowDown, ArrowUp, Plus, X, Search, ChevronDown, ChevronRight } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { UrlBar } from "@/components/request/url-bar";
 import { KeyValueEditor } from "@/components/request/key-value-editor";
@@ -37,6 +37,7 @@ export function GrpcView() {
   const [methodFilter, setMethodFilter] = useState("");
   const [showMetadata, setShowMetadata] = useState(false);
   const [showResponseMeta, setShowResponseMeta] = useState(false);
+  const [reflecting, setReflecting] = useState(false);
   const logRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -124,6 +125,32 @@ export function GrpcView() {
     }
   };
 
+  const handleReflect = async () => {
+    if (!tab.url.trim()) {
+      updateGrpc({ error: t("grpc.reflectNeedsAddress", { defaultValue: "Enter a server address first." }) });
+      return;
+    }
+    setReflecting(true);
+    updateGrpc({ error: null });
+    try {
+      const services = await grpcReflectServices(tab.id, tab.url);
+      if (services.length === 0) {
+        updateGrpc({ error: t("grpc.reflectNoServices", { defaultValue: "The server exposed no services via reflection." }) });
+        return;
+      }
+      updateGrpc({
+        services,
+        selectedService: services[0]?.fullName ?? null,
+        selectedMethod: services[0]?.methods[0]?.name ?? null,
+        error: null,
+      });
+    } catch (err) {
+      updateGrpc({ error: String(err) });
+    } finally {
+      setReflecting(false);
+    }
+  };
+
   const selectedSvc = grpc.services.find((s) => s.fullName === grpc.selectedService);
   const selectedMtd = selectedSvc?.methods.find((m) => m.name === grpc.selectedMethod);
   const callType = selectedMtd?.callType ?? "unary";
@@ -188,13 +215,24 @@ export function GrpcView() {
       <Breadcrumb />
       <UrlBar
         extraActions={
-          <button
-            onClick={handleLoadProto}
-            className="flex items-center gap-1 rounded-lg bg-[var(--color-elevated)] px-2.5 py-2 text-xs text-[var(--color-text-secondary)] hover:bg-[var(--color-border)]"
-          >
-            <Upload className="h-3 w-3" />
-            {t("grpc.loadProto")}
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={handleReflect}
+              disabled={reflecting}
+              title={t("grpc.reflectHint", { defaultValue: "Discover services from a reflection-enabled server" })}
+              className="flex items-center gap-1 rounded-lg bg-[var(--color-elevated)] px-2.5 py-2 text-xs text-[var(--color-text-secondary)] hover:bg-[var(--color-border)] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {reflecting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Radio className="h-3 w-3" />}
+              {t("grpc.reflect", { defaultValue: "Reflect" })}
+            </button>
+            <button
+              onClick={handleLoadProto}
+              className="flex items-center gap-1 rounded-lg bg-[var(--color-elevated)] px-2.5 py-2 text-xs text-[var(--color-text-secondary)] hover:bg-[var(--color-border)]"
+            >
+              <Upload className="h-3 w-3" />
+              {t("grpc.loadProto")}
+            </button>
+          </div>
         }
         sendButton={
           <button
