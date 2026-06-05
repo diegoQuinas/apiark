@@ -349,6 +349,18 @@ export const UrlBar = forwardRef<HTMLInputElement, UrlBarProps>(function UrlBar(
           onBlur={() => setInputFocused(false)}
           disabled={urlDisabled}
           placeholder={t("request.urlPlaceholder")}
+          // macOS WKWebView applies a default -webkit-text-fill-color to text
+          // inputs that overrides `color`, so Tailwind's text-transparent alone
+          // leaves the raw {{var}} text painted on top of the highlight overlay
+          // (the variables look unhighlighted). Forcing the fill color
+          // transparent too hides the real input text so the overlay is the
+          // only visible layer. Linux WebKitGTK doesn't need it but is harmless.
+          // (issue #96)
+          style={
+            hasVariablesInUrl && !inputFocused
+              ? { WebkitTextFillColor: "transparent" }
+              : undefined
+          }
           className={`w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-elevated)] px-4 py-2 text-sm outline-none transition-all focus:border-[var(--color-accent)]/50 focus:ring-2 focus:ring-[var(--color-accent)]/20 disabled:opacity-60 ${
             hasVariablesInUrl && !inputFocused
               ? "text-transparent caret-[var(--color-text-primary)]"
