@@ -23,7 +23,10 @@ vi.mock("@/stores/console-store", () => ({
 
 vi.mock("@/stores/collection-store", () => ({
   useCollectionStore: {
-    getState: () => ({ openCollection: vi.fn().mockResolvedValue(undefined) }),
+    getState: () => ({
+      collections: [],
+      openCollection: vi.fn().mockResolvedValue(undefined),
+    }),
   },
 }));
 
@@ -40,6 +43,7 @@ describe("Tab Store", () => {
     useTabStore.setState({
       tabs: [],
       activeTabId: null,
+      hydrated: false,
     });
   });
 
@@ -217,5 +221,34 @@ describe("Tab Store", () => {
     const filePaths = useTabStore.getState().tabs.map((t) => t.filePath).sort();
     expect(useTabStore.getState().tabs).toHaveLength(2);
     expect(filePaths).toEqual(["/col/req1.yaml", "/col/req2.yaml"]);
+  });
+
+  it("does not persist before hydration, so an early startup persist cannot wipe collections", async () => {
+    const api = await import("@/lib/tauri-api");
+    vi.mocked(api.savePersistedState).mockClear();
+
+    // Startup: store not yet hydrated (restoreTabs hasn't loaded collections).
+    useTabStore.setState({ tabs: [], activeTabId: null, hydrated: false });
+
+    // The debounced persist effect fires before restore finishes...
+    useTabStore.getState().persistTabs();
+    // Flush the dynamic import + microtasks persistTabs would use to save.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    // ...and must write nothing, otherwise it overwrites collections with [].
+    expect(api.savePersistedState).not.toHaveBeenCalled();
+  });
+
+  it("marks the store hydrated after restoreTabs completes", async () => {
+    const api = await import("@/lib/tauri-api");
+    vi.mocked(api.loadPersistedState).mockResolvedValue({
+      tabs: [],
+      activeTabIndex: null,
+      collections: ["/col"],
+    } as never);
+
+    expect(useTabStore.getState().hydrated).toBe(false);
+    await useTabStore.getState().restoreTabs();
+    expect(useTabStore.getState().hydrated).toBe(true);
   });
 });
