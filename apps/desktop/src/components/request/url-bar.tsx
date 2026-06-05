@@ -10,6 +10,7 @@ import { HintTooltip } from "@/components/ui/hint-tooltip";
 import { HeaderEnvironmentSelector } from "@/components/environment/header-environment-selector";
 import { saveEnvironment } from "@/lib/tauri-api";
 import { Input } from "@/components/ui/input";
+import { variableRegex } from "@/lib/variables";
 
 const METHODS: HttpMethod[] = [
   "GET",
@@ -55,7 +56,7 @@ function extractVariableRefs(tab: {
     tab.body.content,
   ].join(" ");
 
-  const matches = text.match(/\{\{([\w$]+)\}\}/g);
+  const matches = text.match(variableRegex());
   if (!matches) return [];
   return [...new Set(matches.map((m) => m.slice(2, -2)))];
 }
@@ -63,7 +64,7 @@ function extractVariableRefs(tab: {
 /** Split a URL string into segments of plain text and {{variable}} references */
 function splitUrlSegments(url: string): { type: "text" | "var"; value: string }[] {
   const segments: { type: "text" | "var"; value: string }[] = [];
-  const regex = /\{\{([\w$]+)\}\}/g;
+  const regex = variableRegex();
   let lastIndex = 0;
   let match: RegExpExecArray | null;
 
