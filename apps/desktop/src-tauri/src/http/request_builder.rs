@@ -98,27 +98,48 @@ pub fn build_url_with_params(
     let mut url = Url::parse(base_url)
         .map_err(|e| HttpEngineError::InvalidUrl(format!("{}: {}", e, base_url)))?;
 
-    // Add enabled query params
-    {
-        let mut query_pairs = url.query_pairs_mut();
-        for param in params.iter().filter(|p| p.enabled && !p.key.is_empty()) {
-            query_pairs.append_pair(&param.key, &param.value);
-        }
-
-        // Add API key to query if configured
-        if let Some(AuthConfig::ApiKey {
-            key,
-            value,
+    let has_params = params.iter().any(|p| p.enabled && !p.key.is_empty());
+    let has_api_key_query = matches!(
+        auth,
+        Some(AuthConfig::ApiKey {
             add_to: ApiKeyLocation::Query,
-        }) = auth
-        {
-            query_pairs.append_pair(key, value);
-        }
-    }
+            ..
+        })
+    );
 
-    // Remove trailing `?` if no params were added
-    if url.query() == Some("") {
-        url.set_query(None);
+    // Only mutate the query string when there are new pairs to add.
+    // query_pairs_mut() replaces the entire query, so calling it with nothing
+    // to append would silently discard any query params already embedded in
+    // base_url (e.g. when the frontend pre-syncs params into the URL string).
+    if has_params || has_api_key_query {
+        // Collect existing pairs so they survive the query_pairs_mut() reset.
+        let existing: Vec<(String, String)> = url
+            .query_pairs()
+            .map(|(k, v)| (k.into_owned(), v.into_owned()))
+            .collect();
+
+        {
+            let mut qp = url.query_pairs_mut();
+            for (k, v) in &existing {
+                qp.append_pair(k, v);
+            }
+            for param in params.iter().filter(|p| p.enabled && !p.key.is_empty()) {
+                qp.append_pair(&param.key, &param.value);
+            }
+            if let Some(AuthConfig::ApiKey {
+                key,
+                value,
+                add_to: ApiKeyLocation::Query,
+            }) = auth
+            {
+                qp.append_pair(key, value);
+            }
+        }
+
+        // Remove trailing `?` if serialization produced an empty query.
+        if url.query() == Some("") {
+            url.set_query(None);
+        }
     }
 
     Ok(url)
@@ -138,7 +159,7 @@ pub fn build_request(
     for header in params
         .headers
         .iter()
-        .filter(|h| h.enabled && !h.key.is_empty())
+        .filter(|h| h.enabled && !h.key.is_empty() && !h.value.is_empty())
     {
         builder = builder.header(&header.key, &header.value);
     }
@@ -216,7 +237,7 @@ fn apply_auth(
             let headers: Vec<(String, String)> = params
                 .headers
                 .iter()
-                .filter(|h| h.enabled && !h.key.is_empty())
+                .filter(|h| h.enabled && !h.key.is_empty() && !h.value.is_empty())
                 .map(|h| (h.key.clone(), h.value.clone()))
                 .collect();
             let body_str = params

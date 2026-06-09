@@ -20,6 +20,7 @@ import {
   saveRequestFile,
   loadPersistedState,
   savePersistedState,
+  getResolvedVariables as getResolvedVariablesApi,
 } from "@/lib/tauri-api";
 import { useEnvironmentStore } from "./environment-store";
 import { useSettingsStore } from "./settings-store";
@@ -764,9 +765,22 @@ export const useTabStore = create<TabState>((set, get) => ({
       ),
     });
 
-    // Get resolved variables from environment store
+    // Get resolved variables using the tab's own collection path so that
+    // variables are resolved from the correct collection when multiple
+    // collections are open (not always from collections[0]).
     const envStore = useEnvironmentStore.getState();
-    const variables = await envStore.getResolvedVariables();
+    const variables = await (async () => {
+      const { activeEnvironmentName, runtimeOverrides } = envStore;
+      if (tab.collectionPath && activeEnvironmentName) {
+        try {
+          const resolved = await getResolvedVariablesApi(tab.collectionPath, activeEnvironmentName);
+          return { ...resolved, ...runtimeOverrides };
+        } catch {
+          // fall back to store's resolved cache
+        }
+      }
+      return envStore.getResolvedVariables();
+    })();
 
     // Get network settings
     const { settings } = useSettingsStore.getState();
