@@ -26,6 +26,10 @@ Thumbs.db
 apps/desktop/src-tauri/target/
 apps/desktop/src-tauri/gen/
 
+# Playwright
+playwright-report/
+test-results/
+
 # Turbo
 .turbo/
 

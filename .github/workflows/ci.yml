@@ -84,6 +84,103 @@ jobs:
         working-directory: apps/cli
         run: cargo test
 
+  e2e-web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Install Playwright browsers
+        run: pnpm --filter @apiark/e2e exec playwright install chromium
+      - name: Build dependent packages
+        run: pnpm --filter @apiark/web build
+      - name: Start dev server and run E2E tests
+        run: |
+          pnpm --filter @apiark/web dev &
+          npx wait-on http://localhost:3000 --timeout 30000
+          pnpm --filter @apiark/e2e test:e2e -- --project=web
+        env:
+          CI: true
+
+  e2e-desktop:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri -> target
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Install Playwright browsers (for HTML reporting)
+        run: pnpm --filter @apiark/e2e exec playwright install chromium
+      - name: Build dependent packages
+        run: pnpm --filter @apiark/web build
+      - name: Build Tauri app and run desktop E2E tests
+        run: |
+          set -euo pipefail
+
+          # Step 1: Build the Tauri binary and start tauri-driver
+          bash apps/e2e/scripts/start-desktop-env.sh
+
+          # Step 2: Find the built binary
+          BINARY=""
+          TARGET_DIR="apps/desktop/src-tauri/target/release"
+          for p in "$TARGET_DIR/apiark" "$TARGET_DIR/ApiArk" "$TARGET_DIR/ApiArk.exe"; do
+            if [[ -f "$p" ]]; then BINARY="$p"; break; fi
+          done
+          if [[ -z "$BINARY" ]]; then
+            echo "::error::Tauri binary not found after build"
+            pkill tauri-driver 2>/dev/null || true
+            exit 1
+          fi
+
+          # Step 3: Launch the app and wait for WebView
+          echo "::group::Launching Tauri app"
+          "$BINARY" &
+          APP_PID=$!
+          echo "App PID: $APP_PID"
+          # Give the app time to open its window
+          sleep 3
+          echo "::endgroup::"
+
+          # Step 4: Run Playwright desktop tests
+          echo "::group::Running desktop E2E tests"
+          EXIT_CODE=0
+          pnpm --filter @apiark/e2e test:e2e -- --project=desktop || EXIT_CODE=$?
+          echo "::endgroup::"
+
+          # Step 5: Clean up
+          echo "::group::Cleanup"
+          kill "$APP_PID" 2>/dev/null || true
+          pkill tauri-driver 2>/dev/null || true
+          echo "Cleanup done"
+          echo "::endgroup::"
+
+          exit "$EXIT_CODE"
+        env:
+          CI: true
+
   bench-rust:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'

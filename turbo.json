@@ -9,6 +9,11 @@
       "cache": false,
       "persistent": true
     },
-    "lint": {}
+    "lint": {},
+    "test:e2e": {
+      "dependsOn": ["^build"],
+      "outputs": ["test-results/**", "playwright-report/**"],
+      "inputs": ["apps/e2e/**"]
+    }
   }
 }
