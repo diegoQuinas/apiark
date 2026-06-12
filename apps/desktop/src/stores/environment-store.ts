@@ -3,6 +3,7 @@ import type { EnvironmentData } from "@apiark/types";
 import {
   loadEnvironments as loadEnvironmentsApi,
   getResolvedVariables as getResolvedVariablesApi,
+  saveEnvironment as saveEnvironmentApi,
   loadRootDotenv,
 } from "@/lib/tauri-api";
 
@@ -12,11 +13,23 @@ interface EnvironmentState {
   activeCollectionPath: string | null;
   /** Runtime variable overrides from scripts (not persisted to disk) */
   runtimeOverrides: Record<string, string>;
+  /**
+   * Cached map of resolved `{{variable}}` values for the active environment.
+   * Single source of truth for every input that paints variable chips, so the
+   * UI never resolves the same map once per input. Kept fresh by
+   * `refreshResolvedVariables`, which runs whenever the environment, collection,
+   * or runtime overrides change.
+   */
+  resolvedVariables: Record<string, string>;
 
   loadEnvironments: (collectionPath: string) => Promise<void>;
   setActiveEnvironment: (name: string | null) => void;
   setActiveCollectionPath: (path: string | null) => void;
   getResolvedVariables: () => Promise<Record<string, string>>;
+  /** Recompute and cache `resolvedVariables` from the current state. */
+  refreshResolvedVariables: () => Promise<void>;
+  /** Write a variable into the active environment and refresh the cache. */
+  setVariable: (name: string, value: string) => Promise<void>;
   applyMutations: (mutations: Record<string, string | null>) => void;
 }
 
@@ -25,6 +38,7 @@ export const useEnvironmentStore = create<EnvironmentState>((set, get) => ({
   activeEnvironmentName: null,
   activeCollectionPath: null,
   runtimeOverrides: {},
+  resolvedVariables: {},
 
   loadEnvironments: async (collectionPath) => {
     try {
@@ -37,6 +51,7 @@ export const useEnvironmentStore = create<EnvironmentState>((set, get) => ({
           get().activeEnvironmentName ??
           (envs.length > 0 ? envs[0].name : null),
       });
+      await get().refreshResolvedVariables();
     } catch (err) {
       import("@/stores/toast-store").then(({ useToastStore }) =>
         useToastStore.getState().showError(`Failed to load environments: ${err}`),
@@ -46,6 +61,7 @@ export const useEnvironmentStore = create<EnvironmentState>((set, get) => ({
 
   setActiveEnvironment: (name) => {
     set({ activeEnvironmentName: name });
+    void get().refreshResolvedVariables();
   },
 
   setActiveCollectionPath: (path) => {
@@ -83,6 +99,28 @@ export const useEnvironmentStore = create<EnvironmentState>((set, get) => ({
     }
   },
 
+  refreshResolvedVariables: async () => {
+    const resolved = await get().getResolvedVariables();
+    set({ resolvedVariables: resolved });
+  },
+
+  setVariable: async (name, value) => {
+    const { activeCollectionPath, activeEnvironmentName, environments } = get();
+    if (!activeCollectionPath || !activeEnvironmentName) return;
+
+    const env = environments.find((e) => e.name === activeEnvironmentName);
+    if (!env) return;
+
+    const updatedEnv: EnvironmentData = {
+      ...env,
+      variables: { ...env.variables, [name]: value },
+    };
+    await saveEnvironmentApi(activeCollectionPath, updatedEnv);
+    // loadEnvironments reloads the environments from disk and refreshes the
+    // resolved-variable cache, so the chips reflect the just-saved write.
+    await get().loadEnvironments(activeCollectionPath);
+  },
+
   applyMutations: (mutations) => {
     set((state) => {
       const overrides = { ...state.runtimeOverrides };
@@ -95,5 +133,6 @@ export const useEnvironmentStore = create<EnvironmentState>((set, get) => ({
       }
       return { runtimeOverrides: overrides };
     });
+    void get().refreshResolvedVariables();
   },
 }));

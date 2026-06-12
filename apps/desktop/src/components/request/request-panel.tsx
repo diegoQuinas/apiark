@@ -6,6 +6,8 @@ import type { AuthConfig, BodyType, RequestBody, KeyValuePair, OAuth2GrantType, 
 import { oauthStartFlow, oauthGetTokenStatus, oauthClearToken } from "@/lib/tauri-api";
 import { HintTooltip } from "@/components/ui/hint-tooltip";
 import { CodeEditor } from "@/components/ui/code-editor";
+import { VariableHighlightInput } from "./variable-highlight-input";
+import { VariableHighlightTextArea } from "./variable-highlight-textarea";
 import { Plus, Trash2, FileUp } from "lucide-react";
 
 /** Extract :paramName path variables from a URL */
@@ -641,49 +643,50 @@ function AuthEditor({
 
       {/* Auth fields */}
       {auth.type === "bearer" && (
-        <input
-          type="text"
+        <VariableHighlightInput
           value={auth.token}
-          onChange={(e) => onChange({ ...auth, token: e.target.value })}
+          onChange={(val) => onChange({ ...auth, token: val })}
           placeholder={t("auth.token")}
           className={INPUT_CLASS}
+          overlayClassName={INPUT_CLASS}
         />
       )}
 
       {auth.type === "basic" && (
         <div className="space-y-2">
-          <input
-            type="text"
+          <VariableHighlightInput
             value={auth.username}
-            onChange={(e) => onChange({ ...auth, username: e.target.value })}
+            onChange={(val) => onChange({ ...auth, username: val })}
             placeholder={t("auth.username")}
             className={INPUT_CLASS}
+            overlayClassName={INPUT_CLASS}
           />
-          <input
+          <VariableHighlightInput
             type="password"
             value={auth.password}
-            onChange={(e) => onChange({ ...auth, password: e.target.value })}
+            onChange={(val) => onChange({ ...auth, password: val })}
             placeholder={t("auth.password")}
             className={INPUT_CLASS}
+            overlayClassName={INPUT_CLASS}
           />
         </div>
       )}
 
       {auth.type === "api-key" && (
         <div className="space-y-2">
-          <input
-            type="text"
+          <VariableHighlightInput
             value={auth.key}
-            onChange={(e) => onChange({ ...auth, key: e.target.value })}
+            onChange={(val) => onChange({ ...auth, key: val })}
             placeholder="Key name (e.g. X-API-Key)"
             className={INPUT_CLASS}
+            overlayClassName={INPUT_CLASS}
           />
-          <input
-            type="text"
+          <VariableHighlightInput
             value={auth.value}
-            onChange={(e) => onChange({ ...auth, value: e.target.value })}
+            onChange={(val) => onChange({ ...auth, value: val })}
             placeholder={t("request.value")}
             className={INPUT_CLASS}
+            overlayClassName={INPUT_CLASS}
           />
           <select
             value={auth.addTo}
@@ -704,59 +707,61 @@ function AuthEditor({
 
       {auth.type === "digest" && (
         <div className="space-y-2">
-          <input
-            type="text"
+          <VariableHighlightInput
             value={auth.username}
-            onChange={(e) => onChange({ ...auth, username: e.target.value })}
+            onChange={(val) => onChange({ ...auth, username: val })}
             placeholder={t("auth.username")}
             className={INPUT_CLASS}
+            overlayClassName={INPUT_CLASS}
           />
-          <input
+          <VariableHighlightInput
             type="password"
             value={auth.password}
-            onChange={(e) => onChange({ ...auth, password: e.target.value })}
+            onChange={(val) => onChange({ ...auth, password: val })}
             placeholder={t("auth.password")}
             className={INPUT_CLASS}
+            overlayClassName={INPUT_CLASS}
           />
         </div>
       )}
 
       {auth.type === "aws-v4" && (
         <div className="space-y-2">
-          <input
-            type="text"
+          <VariableHighlightInput
             value={auth.accessKey}
-            onChange={(e) => onChange({ ...auth, accessKey: e.target.value })}
+            onChange={(val) => onChange({ ...auth, accessKey: val })}
             placeholder={t("auth.accessKey")}
             className={INPUT_CLASS}
+            overlayClassName={INPUT_CLASS}
           />
-          <input
+          <VariableHighlightInput
             type="password"
             value={auth.secretKey}
-            onChange={(e) => onChange({ ...auth, secretKey: e.target.value })}
+            onChange={(val) => onChange({ ...auth, secretKey: val })}
             placeholder={t("auth.secretKey")}
             className={INPUT_CLASS}
+            overlayClassName={INPUT_CLASS}
           />
-          <input
-            type="text"
+          <VariableHighlightInput
             value={auth.region}
-            onChange={(e) => onChange({ ...auth, region: e.target.value })}
+            onChange={(val) => onChange({ ...auth, region: val })}
             placeholder={t("auth.region")}
             className={INPUT_CLASS}
+            overlayClassName={INPUT_CLASS}
           />
-          <input
-            type="text"
+          <VariableHighlightInput
             value={auth.service}
-            onChange={(e) => onChange({ ...auth, service: e.target.value })}
+            onChange={(val) => onChange({ ...auth, service: val })}
             placeholder={t("auth.service")}
             className={INPUT_CLASS}
+            overlayClassName={INPUT_CLASS}
           />
-          <input
-            type="text"
+          <VariableHighlightInput
             value={auth.sessionToken}
-            onChange={(e) => onChange({ ...auth, sessionToken: e.target.value })}
+            onChange={(val) => onChange({ ...auth, sessionToken: val })}
             placeholder={t("auth.sessionToken")}
             className={INPUT_CLASS}
+            overlayClassName={INPUT_CLASS}
           />
         </div>
       )}
@@ -777,106 +782,110 @@ function AuthEditor({
             <option value="ES256">ES256</option>
             <option value="ES384">ES384</option>
           </select>
-          <input
+          <VariableHighlightInput
             type="password"
             value={auth.secret}
-            onChange={(e) => onChange({ ...auth, secret: e.target.value })}
+            onChange={(val) => onChange({ ...auth, secret: val })}
             placeholder={auth.algorithm.startsWith("HS") ? "HMAC Secret" : "Private Key (PEM)"}
             className={INPUT_CLASS}
+            overlayClassName={INPUT_CLASS}
           />
-          <textarea
+          <VariableHighlightTextArea
             value={auth.payload}
-            onChange={(e) => onChange({ ...auth, payload: e.target.value })}
+            onChange={(val) => onChange({ ...auth, payload: val })}
             placeholder='{"sub": "user", "iat": 0}'
             rows={5}
             className={INPUT_CLASS + " resize-y font-mono"}
+            overlayClassName={INPUT_CLASS + " resize-y font-mono"}
           />
-          <input
-            type="text"
+          <VariableHighlightInput
             value={auth.headerPrefix}
-            onChange={(e) => onChange({ ...auth, headerPrefix: e.target.value })}
+            onChange={(val) => onChange({ ...auth, headerPrefix: val })}
             placeholder={t("auth.headerPrefix")}
             className={INPUT_CLASS}
+            overlayClassName={INPUT_CLASS}
           />
         </div>
       )}
 
       {auth.type === "ntlm" && (
         <div className="space-y-2">
-          <input
-            type="text"
+          <VariableHighlightInput
             value={auth.username}
-            onChange={(e) => onChange({ ...auth, username: e.target.value })}
+            onChange={(val) => onChange({ ...auth, username: val })}
             placeholder={t("auth.username")}
             className={INPUT_CLASS}
+            overlayClassName={INPUT_CLASS}
           />
-          <input
+          <VariableHighlightInput
             type="password"
             value={auth.password}
-            onChange={(e) => onChange({ ...auth, password: e.target.value })}
+            onChange={(val) => onChange({ ...auth, password: val })}
             placeholder={t("auth.password")}
             className={INPUT_CLASS}
+            overlayClassName={INPUT_CLASS}
           />
-          <input
-            type="text"
+          <VariableHighlightInput
             value={auth.domain}
-            onChange={(e) => onChange({ ...auth, domain: e.target.value })}
+            onChange={(val) => onChange({ ...auth, domain: val })}
             placeholder={t("auth.domain")}
             className={INPUT_CLASS}
+            overlayClassName={INPUT_CLASS}
           />
-          <input
-            type="text"
+          <VariableHighlightInput
             value={auth.workstation}
-            onChange={(e) => onChange({ ...auth, workstation: e.target.value })}
+            onChange={(val) => onChange({ ...auth, workstation: val })}
             placeholder={t("auth.workstation")}
             className={INPUT_CLASS}
+            overlayClassName={INPUT_CLASS}
           />
         </div>
       )}
 
       {auth.type === "saml" && (
         <div className="space-y-2">
-          <input
-            type="text"
+          <VariableHighlightInput
             value={auth.idpUrl}
-            onChange={(e) => onChange({ ...auth, idpUrl: e.target.value })}
+            onChange={(val) => onChange({ ...auth, idpUrl: val })}
             placeholder={t("auth.idpUrl")}
             className={INPUT_CLASS}
+            overlayClassName={INPUT_CLASS}
           />
-          <input
-            type="text"
+          <VariableHighlightInput
             value={auth.entityId}
-            onChange={(e) => onChange({ ...auth, entityId: e.target.value })}
+            onChange={(val) => onChange({ ...auth, entityId: val })}
             placeholder={t("auth.entityId")}
             className={INPUT_CLASS}
+            overlayClassName={INPUT_CLASS}
           />
-          <input
-            type="text"
+          <VariableHighlightInput
             value={auth.assertionConsumerUrl}
-            onChange={(e) => onChange({ ...auth, assertionConsumerUrl: e.target.value })}
+            onChange={(val) => onChange({ ...auth, assertionConsumerUrl: val })}
             placeholder={t("auth.assertionConsumerUrl")}
             className={INPUT_CLASS}
+            overlayClassName={INPUT_CLASS}
           />
-          <textarea
+          <VariableHighlightTextArea
             value={auth.certificate}
-            onChange={(e) => onChange({ ...auth, certificate: e.target.value })}
+            onChange={(val) => onChange({ ...auth, certificate: val })}
             placeholder={t("auth.certificate")}
             rows={3}
             className={INPUT_CLASS + " resize-y font-mono"}
+            overlayClassName={INPUT_CLASS + " resize-y font-mono"}
           />
-          <input
-            type="text"
+          <VariableHighlightInput
             value={auth.nameIdFormat}
-            onChange={(e) => onChange({ ...auth, nameIdFormat: e.target.value })}
+            onChange={(val) => onChange({ ...auth, nameIdFormat: val })}
             placeholder={t("auth.nameIdFormat")}
             className={INPUT_CLASS}
+            overlayClassName={INPUT_CLASS}
           />
-          <input
-            type="text"
+          <VariableHighlightInput
             value={auth.samlToken}
-            onChange={(e) => onChange({ ...auth, samlToken: e.target.value })}
+            onChange={(val) => onChange({ ...auth, samlToken: val })}
             placeholder={t("auth.samlToken")}
             className={INPUT_CLASS}
+            overlayClassName={INPUT_CLASS}
           />
         </div>
       )}
@@ -966,12 +975,12 @@ function OAuth2Editor({
       {showAuthUrl && (
         <label className="block">
           <span className="text-xs text-[var(--color-text-secondary)]">{t("auth.authUrl")}</span>
-          <input
-            type="text"
+          <VariableHighlightInput
             value={auth.authUrl}
-            onChange={(e) => onChange({ ...auth, authUrl: e.target.value })}
+            onChange={(val) => onChange({ ...auth, authUrl: val })}
             placeholder="https://provider.com/oauth/authorize"
             className={INPUT_CLASS}
+            overlayClassName={INPUT_CLASS}
           />
         </label>
       )}
@@ -980,12 +989,12 @@ function OAuth2Editor({
       {showTokenUrl && (
         <label className="block">
           <span className="text-xs text-[var(--color-text-secondary)]">{t("auth.tokenUrl")}</span>
-          <input
-            type="text"
+          <VariableHighlightInput
             value={auth.tokenUrl}
-            onChange={(e) => onChange({ ...auth, tokenUrl: e.target.value })}
+            onChange={(val) => onChange({ ...auth, tokenUrl: val })}
             placeholder="https://provider.com/oauth/token"
             className={INPUT_CLASS}
+            overlayClassName={INPUT_CLASS}
           />
         </label>
       )}
@@ -994,22 +1003,23 @@ function OAuth2Editor({
       <div className="grid grid-cols-2 gap-2">
         <label className="block">
           <span className="text-xs text-[var(--color-text-secondary)]">{t("auth.clientId")}</span>
-          <input
-            type="text"
+          <VariableHighlightInput
             value={auth.clientId}
-            onChange={(e) => onChange({ ...auth, clientId: e.target.value })}
+            onChange={(val) => onChange({ ...auth, clientId: val })}
             placeholder={t("auth.clientId")}
             className={INPUT_CLASS}
+            overlayClassName={INPUT_CLASS}
           />
         </label>
         <label className="block">
           <span className="text-xs text-[var(--color-text-secondary)]">{t("auth.clientSecret")}</span>
-          <input
+          <VariableHighlightInput
             type="password"
             value={auth.clientSecret}
-            onChange={(e) => onChange({ ...auth, clientSecret: e.target.value })}
+            onChange={(val) => onChange({ ...auth, clientSecret: val })}
             placeholder={t("auth.clientSecret")}
             className={INPUT_CLASS}
+            overlayClassName={INPUT_CLASS}
           />
         </label>
       </div>
@@ -1017,12 +1027,12 @@ function OAuth2Editor({
       {/* Scope */}
       <label className="block">
         <span className="text-xs text-[var(--color-text-secondary)]">{t("auth.scope")}</span>
-        <input
-          type="text"
+        <VariableHighlightInput
           value={auth.scope}
-          onChange={(e) => onChange({ ...auth, scope: e.target.value })}
+          onChange={(val) => onChange({ ...auth, scope: val })}
           placeholder="openid profile email"
           className={INPUT_CLASS}
+          overlayClassName={INPUT_CLASS}
         />
       </label>
 
@@ -1031,22 +1041,23 @@ function OAuth2Editor({
         <div className="grid grid-cols-2 gap-2">
           <label className="block">
             <span className="text-xs text-[var(--color-text-secondary)]">{t("auth.username")}</span>
-            <input
-              type="text"
+            <VariableHighlightInput
               value={auth.username}
-              onChange={(e) => onChange({ ...auth, username: e.target.value })}
+              onChange={(val) => onChange({ ...auth, username: val })}
               placeholder={t("auth.username")}
               className={INPUT_CLASS}
+              overlayClassName={INPUT_CLASS}
             />
           </label>
           <label className="block">
             <span className="text-xs text-[var(--color-text-secondary)]">{t("auth.password")}</span>
-            <input
+            <VariableHighlightInput
               type="password"
               value={auth.password}
-              onChange={(e) => onChange({ ...auth, password: e.target.value })}
+              onChange={(val) => onChange({ ...auth, password: val })}
               placeholder={t("auth.password")}
               className={INPUT_CLASS}
+              overlayClassName={INPUT_CLASS}
             />
           </label>
         </div>
@@ -1056,12 +1067,12 @@ function OAuth2Editor({
       {showAuthUrl && (
         <label className="block">
           <span className="text-xs text-[var(--color-text-secondary)]">{t("auth.callbackUrl")}</span>
-          <input
-            type="text"
+          <VariableHighlightInput
             value={auth.callbackUrl}
-            onChange={(e) => onChange({ ...auth, callbackUrl: e.target.value })}
+            onChange={(val) => onChange({ ...auth, callbackUrl: val })}
             placeholder="http://localhost:9876/callback"
             className={INPUT_CLASS}
+            overlayClassName={INPUT_CLASS}
           />
         </label>
       )}
