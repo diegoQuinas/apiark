@@ -3,6 +3,7 @@ import type { EnvironmentData } from "@apiark/types";
 import {
   loadEnvironments as loadEnvironmentsApi,
   getResolvedVariables as getResolvedVariablesApi,
+  deleteEnvironment as deleteEnvironmentApi,
   saveEnvironment as saveEnvironmentApi,
   loadRootDotenv,
 } from "@/lib/tauri-api";
