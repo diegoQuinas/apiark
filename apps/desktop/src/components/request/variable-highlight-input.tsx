@@ -37,7 +37,7 @@ export function splitVariableSegments(
 }
 
 /** Inline popover for editing a single variable value. */
-function VariableEditor({
+export function VariableEditor({
   varName,
   resolved,
   onSave,
