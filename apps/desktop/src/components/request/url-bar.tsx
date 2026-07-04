@@ -6,6 +6,7 @@ import type { HttpMethod, EnvironmentData } from "@apiark/types";
 import { Loader2, Send, AlertCircle, Check } from "lucide-react";
 import * as Popover from "@radix-ui/react-popover";
 import { HintTooltip } from "@/components/ui/hint-tooltip";
+import { HeaderEnvironmentSelector } from "@/components/environment/header-environment-selector";
 import { saveEnvironment } from "@/lib/tauri-api";
 
 const METHODS: HttpMethod[] = [
@@ -334,6 +335,9 @@ export const UrlBar = forwardRef<HTMLInputElement, UrlBarProps>(function UrlBar(
           ))}
         </select>
       )}
+
+      {/* Environment selector */}
+      <HeaderEnvironmentSelector />
 
       {/* URL input with variable highlighting overlay */}
       <div className="relative flex-1">
