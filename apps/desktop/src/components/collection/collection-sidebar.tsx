@@ -17,7 +17,7 @@ type SidebarSection = "collections" | "environments" | "history";
 interface CollectionSidebarProps {
   onOpenSettings?: () => void;
   collapsed?: boolean;
-  envSelectorRef?: React.RefObject<HTMLSelectElement | null>;
+  envSelectorRef?: React.RefObject<HTMLButtonElement | null>;
   onOpenImport?: () => void;
 }
 

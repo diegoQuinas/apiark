@@ -271,6 +271,8 @@ export interface EnvironmentData {
   variables: Record<string, string>;
   secrets: string[];
   scope?: "shared" | "personal";
+  /** Hex color (e.g. "#10b981") for visual identification in the UI */
+  color?: string;
 }
 
 // ── History Entry (matches Rust HistoryEntry) ──

@@ -1,11 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  SIDEBAR_MIN_WIDTH,
-  SIDEBAR_MAX_WIDTH,
-  SIDEBAR_DEFAULT_WIDTH,
-  clampSidebarWidth,
-} from "@/lib/sidebar-width";
 import { useCollectionStore } from "@/stores/collection-store";
 import { CollectionTree } from "@/components/collection/collection-tree";
 import { EnvironmentSelector } from "@/components/environment/environment-selector";
@@ -21,11 +15,10 @@ import type { ActivityView } from "./activity-bar";
 import { ProxySidePanel as ProxySidePanelView } from "@/components/proxy/proxy-panel";
 import { GitPanel as GitPanelView } from "@/components/git/git-panel";
 import { AuditPanel } from "@/components/audit/audit-panel";
-import { Input } from "@/components/ui/input";
 
 interface SidePanelProps {
   activeView: ActivityView;
-  envSelectorRef?: React.RefObject<HTMLSelectElement | null>;
+  envSelectorRef?: React.RefObject<HTMLButtonElement | null>;
   onOpenMock?: () => void;
   onOpenMonitor?: () => void;
   onOpenDocs?: () => void;
@@ -54,83 +47,12 @@ export function SidePanel({
   };
 
   const sidebarWidth = useSettingsStore((s) => s.settings.sidebarWidth);
-  const updateSettings = useSettingsStore((s) => s.updateSettings);
-  const panelRef = useRef<HTMLDivElement>(null);
-
-  const handleResizeStart = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      const panel = panelRef.current;
-      if (!panel) return;
-
-      const startLeft = panel.getBoundingClientRect().left;
-      let finalWidth: number | null = null;
-
-      const onMouseMove = (ev: MouseEvent) => {
-        finalWidth = clampSidebarWidth(ev.clientX - startLeft);
-        // Direct DOM mutation during drag — no React re-render, instant feedback.
-        panel.style.width = `${finalWidth}px`;
-      };
-
-      const onMouseUp = () => {
-        document.removeEventListener("mousemove", onMouseMove);
-        document.removeEventListener("mouseup", onMouseUp);
-        document.body.style.cursor = "";
-        document.body.style.userSelect = "";
-        // Only persist when an actual drag happened (skip a bare click).
-        if (finalWidth !== null) void updateSettings({ sidebarWidth: finalWidth });
-      };
-
-      document.body.style.cursor = "col-resize";
-      document.body.style.userSelect = "none";
-      document.addEventListener("mousemove", onMouseMove);
-      document.addEventListener("mouseup", onMouseUp);
-    },
-    [updateSettings],
-  );
-
-  const handleResizeKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      const STEP = 16;
-      let next: number | null = null;
-      if (e.key === "ArrowLeft") next = sidebarWidth - STEP;
-      else if (e.key === "ArrowRight") next = sidebarWidth + STEP;
-      else if (e.key === "Home") next = SIDEBAR_MIN_WIDTH;
-      else if (e.key === "End") next = SIDEBAR_MAX_WIDTH;
-      if (next === null) return;
-      e.preventDefault();
-      void updateSettings({ sidebarWidth: clampSidebarWidth(next) });
-    },
-    [sidebarWidth, updateSettings],
-  );
 
   return (
     <div
-      ref={panelRef}
-      className="relative flex shrink-0 flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)]"
+      className="flex shrink-0 flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)]"
       style={{ width: `${sidebarWidth}px` }}
     >
-      {/* Drag-to-resize handle on the right edge */}
-      <div
-        role="separator"
-        aria-orientation="vertical"
-        aria-label={t("sidebar.resize")}
-        aria-valuenow={sidebarWidth}
-        aria-valuemin={SIDEBAR_MIN_WIDTH}
-        aria-valuemax={SIDEBAR_MAX_WIDTH}
-        tabIndex={0}
-        title={t("sidebar.resize")}
-        onMouseDown={handleResizeStart}
-        onKeyDown={handleResizeKeyDown}
-        onDoubleClick={() => void updateSettings({ sidebarWidth: SIDEBAR_DEFAULT_WIDTH })}
-        className="group absolute inset-y-0 right-0 z-10 w-1.5 -mr-0.5 cursor-col-resize outline-none"
-      >
-        {/* Visible line, highlighted on hover/drag/focus */}
-        <div className="absolute inset-y-0 left-[2px] w-0.5 rounded-full bg-transparent transition-colors group-hover:bg-[var(--color-accent)] group-focus:bg-[var(--color-accent)] group-active:bg-[var(--color-accent)]" />
-        {/* Invisible hit target, biased outward into the gutter to avoid the content scrollbar */}
-        <div className="absolute inset-y-0 left-0 -right-2" />
-      </div>
-
       {/* Panel header */}
       <div className="flex h-11 shrink-0 items-center px-4">
         <span className="text-sm font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
@@ -182,7 +104,7 @@ function CollectionsPanel({ onOpenImport }: { onOpenImport?: () => void }) {
       {collections.length > 0 && (
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--color-text-dimmed)]" />
-          <Input
+          <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -459,22 +381,22 @@ function CollectionDefaultsDialog({
               </div>
 
               {authType === "bearer" && (
-                <Input type="text" value={token} onChange={(e) => setToken(e.target.value)} placeholder={t("auth.token")}
+                <input type="text" value={token} onChange={(e) => setToken(e.target.value)} placeholder={t("auth.token")}
                   className="w-full rounded bg-[var(--color-elevated)] px-3 py-1.5 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-dimmed)] outline-none" />
               )}
               {authType === "basic" && (
                 <div className="space-y-2">
-                  <Input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder={t("auth.username")}
+                  <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder={t("auth.username")}
                     className="w-full rounded bg-[var(--color-elevated)] px-3 py-1.5 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-dimmed)] outline-none" />
-                  <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t("auth.password")}
+                  <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t("auth.password")}
                     className="w-full rounded bg-[var(--color-elevated)] px-3 py-1.5 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-dimmed)] outline-none" />
                 </div>
               )}
               {authType === "api-key" && (
                 <div className="space-y-2">
-                  <Input type="text" value={apiKeyKey} onChange={(e) => setApiKeyKey(e.target.value)} placeholder="Header name"
+                  <input type="text" value={apiKeyKey} onChange={(e) => setApiKeyKey(e.target.value)} placeholder="Header name"
                     className="w-full rounded bg-[var(--color-elevated)] px-3 py-1.5 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-dimmed)] outline-none" />
-                  <Input type="text" value={apiKeyValue} onChange={(e) => setApiKeyValue(e.target.value)} placeholder="Value"
+                  <input type="text" value={apiKeyValue} onChange={(e) => setApiKeyValue(e.target.value)} placeholder="Value"
                     className="w-full rounded bg-[var(--color-elevated)] px-3 py-1.5 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-dimmed)] outline-none" />
                 </div>
               )}
@@ -548,7 +470,7 @@ function CollectionHeader({
           <Folder className="h-3.5 w-3.5 shrink-0 text-[var(--color-text-muted)]" />
         )}
         {renaming ? (
-          <Input
+          <input
             autoFocus
             value={renameValue}
             onChange={(e) => setRenameValue(e.target.value)}
@@ -672,7 +594,7 @@ function NewCollectionDialog({
               <label className="text-xs font-medium text-[var(--color-text-secondary)]">
                 {t("sidebar.collectionName")}
               </label>
-              <Input
+              <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -690,7 +612,7 @@ function NewCollectionDialog({
                 {t("sidebar.location")}
               </label>
               <div className="flex gap-2">
-                <Input
+                <input
                   type="text"
                   value={parentDir}
                   readOnly
@@ -737,31 +659,29 @@ function NewCollectionDialog({
 function EnvironmentsPanel({
   envSelectorRef,
 }: {
-  envSelectorRef?: React.RefObject<HTMLSelectElement | null>;
+  envSelectorRef?: React.RefObject<HTMLButtonElement | null>;
 }) {
   const { t } = useTranslation();
-  const { environments, activeEnvironmentName, setActiveEnvironment, loadEnvironments, deleteEnvironment } =
+  const { environments, activeEnvironmentName, setActiveEnvironment, loadEnvironments } =
     useEnvironmentStore();
   const { collections } = useCollectionStore();
   const [editingEnv, setEditingEnv] = useState<EnvironmentData | null>(null);
   const [newEnvOpen, setNewEnvOpen] = useState(false);
-  const [deletingEnv, setDeletingEnv] = useState<EnvironmentData | null>(null);
 
   const collectionPath =
     collections.find((c) => c.type === "collection")?.path ?? null;
 
-  // Environments are loaded by useActiveCollectionEnvironments (mounted at the
-  // App level); the explicit reloads below refresh after save/import/create.
+  // Load environments when panel mounts with a collection
+  useEffect(() => {
+    if (collectionPath) {
+      loadEnvironments(collectionPath);
+    }
+  }, [collectionPath, loadEnvironments]);
 
   const handleSave = async (env: EnvironmentData) => {
     if (!collectionPath) return;
-    const oldName = editingEnv?.name;
-    const nameChanged = oldName && oldName !== env.name;
     try {
-      await saveEnvironment(collectionPath, env, undefined, oldName);
-      if (nameChanged && activeEnvironmentName === oldName) {
-        setActiveEnvironment(env.name);
-      }
+      await saveEnvironment(collectionPath, env);
       await loadEnvironments(collectionPath);
       setEditingEnv(null);
     } catch (err) {
@@ -808,7 +728,8 @@ function EnvironmentsPanel({
 
   const handleCreateNew = async (name: string) => {
     if (!collectionPath) return;
-    const env: EnvironmentData = { name, variables: {}, secrets: [] };
+    const color = ["#10b981", "#3b82f6", "#8b5cf6", "#ec4899", "#f97316", "#eab308", "#06b6d4", "#14b8a6", "#a855f7", "#ef4444"][environments.length % 10];
+    const env: EnvironmentData = { name, variables: {}, secrets: [], color };
     try {
       await saveEnvironment(collectionPath, env);
       await loadEnvironments(collectionPath);
@@ -915,42 +836,33 @@ function EnvironmentsPanel({
           </div>
         ) : (
           environments.map((env) => (
-            <div
+            <button
               key={env.name}
-              className={`group flex w-full items-center justify-between rounded-md px-2 py-1.5 text-xs transition-colors ${
+              onClick={() => setEditingEnv(env)}
+              className={`flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-xs transition-colors ${
                 activeEnvironmentName === env.name
-                  ? "bg-[var(--color-accent)]/10"
-                  : "hover:bg-[var(--color-elevated)]"
+                  ? "bg-[var(--color-accent)]/10 text-[var(--color-accent)]"
+                  : "text-[var(--color-text-primary)] hover:bg-[var(--color-elevated)]"
               }`}
             >
-              <button
-                onClick={() => setEditingEnv(env)}
-                className={`flex min-w-0 flex-1 items-center gap-1.5 truncate text-left ${
-                  activeEnvironmentName === env.name
-                    ? "text-[var(--color-accent)]"
-                    : "text-[var(--color-text-primary)]"
-                }`}
-              >
+              <div className="flex items-center gap-1.5 truncate">
+                {env.color && (
+                  <span
+                    className="h-2 w-2 shrink-0 rounded-full"
+                    style={{ backgroundColor: env.color }}
+                  />
+                )}
                 <span className="truncate">{env.name}</span>
                 {env.scope === "personal" && (
                   <span className="shrink-0 rounded bg-amber-500/15 px-1 py-0.5 text-[8px] font-bold text-amber-400">
                     LOCAL
                   </span>
                 )}
-              </button>
-              <div className="flex shrink-0 items-center gap-1">
-                <span className="text-[10px] text-[var(--color-text-dimmed)] group-hover:hidden">
-                  {Object.keys(env.variables).length} vars
-                </span>
-                <button
-                  onClick={() => setDeletingEnv(env)}
-                  className="hidden rounded p-0.5 text-[var(--color-text-muted)] hover:bg-red-500/20 hover:text-red-400 group-hover:block"
-                  title={t("sidebar.deleteEnvironment")}
-                >
-                  <Trash2 className="h-3 w-3" />
-                </button>
               </div>
-            </div>
+              <span className="shrink-0 text-[10px] text-[var(--color-text-dimmed)]">
+                {Object.keys(env.variables).length} vars
+              </span>
+            </button>
           ))
         )}
       </div>
@@ -961,40 +873,6 @@ function EnvironmentsPanel({
         onOpenChange={setNewEnvOpen}
         onCreate={handleCreateNew}
       />
-
-      {/* Delete environment confirmation */}
-      <Dialog.Root open={!!deletingEnv} onOpenChange={(v) => { if (!v) setDeletingEnv(null); }}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-40 bg-black/50" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-80 -translate-x-1/2 -translate-y-1/2 rounded-xl border border-[var(--color-border)] bg-[var(--color-elevated)] p-5 shadow-2xl">
-            <Dialog.Title className="mb-2 text-sm font-semibold text-[var(--color-text-primary)]">
-              {t("confirmDelete.title")}
-            </Dialog.Title>
-            <p className="mb-5 text-sm text-[var(--color-text-secondary)]">
-              {t("sidebar.deleteEnvironmentConfirm", { name: deletingEnv?.name })}
-            </p>
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setDeletingEnv(null)}
-                className="rounded-lg px-4 py-1.5 text-sm text-[var(--color-text-muted)] hover:bg-[var(--color-surface)]"
-              >
-                {t("common.cancel")}
-              </button>
-              <button
-                onClick={() => {
-                  if (!deletingEnv || !collectionPath) return;
-                  const target = deletingEnv;
-                  setDeletingEnv(null);
-                  deleteEnvironment(collectionPath, target.name, target.scope);
-                }}
-                className="rounded-lg bg-red-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-red-700"
-              >
-                {t("sidebar.deleteEnvironment")}
-              </button>
-            </div>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
     </div>
   );
 }
@@ -1019,13 +897,20 @@ function EnvironmentEditor({
   );
 
   const [scope, setScope] = useState<"shared" | "personal">(env.scope ?? "shared");
+  const [color, setColor] = useState(env.color ?? "");
 
   const handleSave = () => {
     const vars: Record<string, string> = {};
     for (const v of variables) {
       if (v.key.trim()) vars[v.key.trim()] = v.value;
     }
-    onSave({ ...env, name: name.trim() || env.name, variables: vars, scope });
+    onSave({
+      ...env,
+      name: name.trim() || env.name,
+      variables: vars,
+      scope,
+      color: color || undefined,
+    });
   };
 
   const updateVar = (index: number, field: "key" | "value", val: string) => {
@@ -1053,7 +938,7 @@ function EnvironmentEditor({
         >
           <X className="h-3.5 w-3.5" />
         </button>
-        <Input
+        <input
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -1092,6 +977,43 @@ function EnvironmentEditor({
         </button>
       </div>
 
+      {/* Color picker */}
+      <div className="flex items-center gap-2 rounded bg-[var(--color-elevated)] px-2 py-1.5">
+        <span className="text-[10px] text-[var(--color-text-dimmed)]">Color:</span>
+        <div className="flex items-center gap-1">
+          {["#10b981","#3b82f6","#8b5cf6","#ec4899","#f97316","#eab308","#06b6d4","#14b8a6","#a855f7","#ef4444"].map((c) => (
+            <button
+              key={c}
+              onClick={() => setColor(color === c ? "" : c)}
+              className={`h-4 w-4 rounded-full transition-transform ${
+                color === c ? "scale-125 ring-1 ring-white" : ""
+              }`}
+              style={{ backgroundColor: c }}
+              title={c}
+            />
+          ))}
+          <label className="relative flex h-4 w-4 cursor-pointer items-center justify-center rounded-full border border-dashed border-[var(--color-border)] hover:border-[var(--color-text-muted)]">
+            <Plus className="h-3 w-3 text-[var(--color-text-dimmed)]" />
+            <input
+              type="color"
+              value={color || "#000000"}
+              onChange={(e) => setColor(e.target.value)}
+              className="absolute inset-0 cursor-pointer opacity-0"
+              title="Custom color"
+            />
+          </label>
+          {color && (
+            <button
+              onClick={() => setColor("")}
+              className="ml-1 text-[10px] text-[var(--color-text-dimmed)] hover:text-[var(--color-text-secondary)]"
+              title="Remove color"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Variables */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
@@ -1102,14 +1024,14 @@ function EnvironmentEditor({
 
         {variables.map((v, i) => (
           <div key={i} className="flex gap-1">
-            <Input
+            <input
               type="text"
               value={v.key}
               onChange={(e) => updateVar(i, "key", e.target.value)}
               placeholder={t("request.key")}
               className="min-w-0 flex-1 basis-0 rounded bg-[var(--color-elevated)] px-2 py-1 text-xs text-[var(--color-text-primary)] placeholder-[var(--color-text-dimmed)] outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
             />
-            <Input
+            <input
               type="text"
               value={v.value}
               onChange={(e) => updateVar(i, "value", e.target.value)}
@@ -1167,7 +1089,7 @@ function NewEnvironmentDialog({
             </Dialog.Close>
           </div>
           <div className="p-4">
-            <Input
+            <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
