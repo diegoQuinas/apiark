@@ -336,9 +336,6 @@ export const UrlBar = forwardRef<HTMLInputElement, UrlBarProps>(function UrlBar(
         </select>
       )}
 
-      {/* Environment selector */}
-      <HeaderEnvironmentSelector />
-
       {/* URL input with variable highlighting overlay */}
       <div className="relative flex-1">
         <input
@@ -384,6 +381,9 @@ export const UrlBar = forwardRef<HTMLInputElement, UrlBarProps>(function UrlBar(
           </div>
         )}
       </div>
+
+      {/* Environment selector */}
+      <HeaderEnvironmentSelector />
 
       {/* Extra protocol-specific actions */}
       {extraActions}
