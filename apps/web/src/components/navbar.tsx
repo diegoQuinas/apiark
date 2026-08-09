@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import { Menu, X, Github, ChevronDown, Download } from "lucide-react";
+import KofiButton from "./kofi-button";
 
 const navLinks = [
   { label: "Features", href: "/#features" },
@@ -165,6 +166,8 @@ export default function Navbar() {
 
           {/* Right side actions */}
           <div className="hidden items-center gap-2.5 lg:flex">
+            <KofiButton className="flex items-center gap-2 rounded-md border border-pink-500/20 bg-pink-500/[0.04] px-3.5 py-1.5 text-[13px] font-medium text-zinc-400 transition-all hover:border-pink-500/30 hover:bg-pink-500/[0.08] hover:text-zinc-200" />
+
             <a
               href="https://github.com/berbicanes/apiark"
               target="_blank"
@@ -251,6 +254,8 @@ export default function Navbar() {
 
             {/* Mobile bottom actions */}
             <div className="flex flex-col gap-2.5 border-t border-white/[0.06] p-4">
+              <KofiButton className="flex items-center justify-center gap-2 rounded-md border border-pink-500/20 bg-pink-500/[0.04] px-4 py-3 text-sm font-medium text-zinc-400 transition-all hover:border-pink-500/30 hover:bg-pink-500/[0.08] hover:text-white" />
+
               <a
                 href="https://github.com/berbicanes/apiark"
                 target="_blank"
